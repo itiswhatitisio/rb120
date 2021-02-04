@@ -1,46 +1,63 @@
 require "io/console"
 
 class Move
-  attr_accessor :value
-  VALUES = %w(r p s)
+  VALUES = { 'r' => 'rock', 'p' => 'paper', 's' => 'scissors',
+             'sp' => 'spock', 'l' => 'lizard' }
 
-  def initialize(value)
-    @value = value
-  end
-
-  def scissors?
-    @value == 's'
-  end
-
-  def rock?
-    @value == 'r'
-  end
-
-  def paper?
-    @value == 'p'
-  end
+  attr_accessor :value, :winning_combinations
 
   def >(other_move)
-    (rock? && other_move.scissors?) ||
-    (paper? && other_move.rock?) ||
-    (scissors? && other_move.paper?)
+    winning_combinations.include?(other_move.value)
   end
+end
 
-  def <(other_move)
-    (rock? && other_move.paper?) ||
-    (paper? && other_move.scissors?) ||
-    (scissors? && other_move.rock?)
+class Rock < Move
+  attr_accessor :name, :winning_combinations
+
+  def initialize
+    @value = 'rock'
+    @winning_combinations = ['scissors', 'lizard']
   end
+end
 
-  def to_s
-    @value
+class Paper < Move
+  attr_accessor :name, :winning_combinations
+
+  def initialize
+    @value = 'paper'
+    @winning_combinations = ['rock', 'spock']
   end
+end
 
+class Scissors < Move
+  attr_accessor :name, :winning_combinations
+
+  def initialize
+    @value = 'scissors'
+    @winning_combinations = ['paper', 'lizard']
+  end
+end
+
+class Spock < Move
+  attr_accessor :name, :winning_combinations
+
+  def initialize
+    @value = 'spock'
+    @winning_combinations = ['scissors', 'rock']
+  end
+end
+
+class Lizard < Move
+  attr_accessor :name, :winning_combinations
+
+  def initialize
+    @value = 'lizard'
+    @winning_combinations = ['paper', 'spock']
+  end
 end
 
 class Player
-
-  attr_accessor :move, :name, :all_moves
+  attr_accessor :move, :name, :all_moves, :value
 
   def initialize
     @move = nil
@@ -52,6 +69,34 @@ class Player
     @player_type == :human
   end
 
+  def count_moves
+    moves = {}
+    all_moves.each do |player_move|
+      if moves.keys.include?(player_move)
+        moves[player_move] += 1
+      else
+        moves[player_move] = 1
+      end
+    end
+    moves
+  end
+
+  def display_moves_history
+    puts "#{name}:"
+    count_moves.each_pair do |choice, frequency|
+      puts "#{choice} - #{frequency} time(s)"
+    end
+  end
+
+  def allowed_choices(value)
+    case value
+    when 'rock' then Rock.new
+    when 'scissors' then Scissors.new
+    when 'paper' then Paper.new
+    when 'spock' then Spock.new
+    when 'lizard' then Lizard.new
+    end
+  end
 end
 
 class Human < Player
@@ -66,17 +111,23 @@ class Human < Player
     self.name = n
   end
 
+  def valid_input?(choice)
+    return true if Move::VALUES.keys.include?(choice)
+    puts "Sorry, invalid choice."
+  end
+
   def choose
     choice = nil
     loop do
-      puts "Please choose rock (r), paper (p), or scissors (s):"
+      puts "Please choose (r)ock, (p)aper, (s)cissors, (l)izard, or (sp)ock:"
       choice = gets.chomp
-      break if Move::VALUES.include?(choice)
-      puts "Sorry, invalid choice. The choice must be r, p, or s"
+      break if valid_input?(choice)
     end
-      self.move = Move.new(choice)
-      @all_moves << choice
-    end
+    choice = Move::VALUES[choice]
+    mv = allowed_choices(choice)
+    all_moves << mv.value
+    self.move = mv
+  end
 end
 
 class Computer < Player
@@ -85,21 +136,21 @@ class Computer < Player
   end
 
   def choose
-    mv = Move.new(Move::VALUES.sample)
+    mv = allowed_choices(Move::VALUES[Move::VALUES.keys.sample])
+    all_moves << mv.value
     self.move = mv
-    @all_moves << move.value
   end
 end
 
 class RPSGame
-  MAX_SCORE = 3
+  MAX_SCORE = 10
 
   attr_accessor :human, :computer, :score, :game_count, :round_count
 
   def initialize
     @human = Human.new
     @computer = Computer.new
-    @score = {@human.name => 0, @computer.name => 0}
+    @score = { @human.name => 0, @computer.name => 0 }
   end
 
   def clear_screen
@@ -107,7 +158,7 @@ class RPSGame
   end
 
   def reset_score
-    @score = {@human.name => 0, @computer.name => 0}
+    @score = { @human.name => 0, @computer.name => 0 }
   end
 
   def increment_score
@@ -116,7 +167,8 @@ class RPSGame
   end
 
   def display_score
-    puts "Scores for this round:"
+    puts "------------------------"
+    puts "Total scores:"
     puts "#{human.name}: #{score[human.name]}"
     puts "#{computer.name}: #{score[computer.name]}"
   end
@@ -139,18 +191,29 @@ class RPSGame
     return true if answer == 'y'
   end
 
+  def players_choose
+    human.choose
+    computer.choose
+  end
+
   def display_moves
-    puts "#{human.name} chose #{human.move}"
-    puts "#{computer.name} chose #{computer.move}"
+    puts "#{human.name} chose #{human.move.value}"
+    puts "#{computer.name} chose #{computer.move.value}"
+  end
+
+  def display_players_moves_history
+    display_separator_moves_history
+    human.display_moves_history
+    computer.display_moves_history
   end
 
   def determine_winner
-    if human.move > computer.move
-      human.name
-    elsif human.move < computer.move
-      computer.name
-    else
+    if (human.move.value == computer.move.value)
       :tie
+    elsif human.move > computer.move
+      human.name
+    else
+      computer.name
     end
   end
 
@@ -163,7 +226,9 @@ class RPSGame
   end
 
   def display_grand_winner
-   puts "The grand winner is #{score.key(MAX_SCORE)}"
+    puts "------------------------"
+    puts "The grand winner is #{score.key(MAX_SCORE)}"
+    puts "------------------------"
   end
 
   def display_goodbye_message
@@ -173,31 +238,31 @@ class RPSGame
   def continue
     puts "Press any key to continue"
     STDIN.getch
+    clear_screen
+  end
+
+  def display_separator_moves_history
+    puts "------------------------"
+    puts "Moves History"
+  end
+
+  def play_single_round
+    loop do
+      players_choose
+      display_moves
+      display_round_winner
+      increment_score
+      display_score
+      display_players_moves_history
+      break if score.values.include?(MAX_SCORE)
+      continue
+    end
   end
 
   def play
-   display_welcome_message
-   game_count = 0
+    display_welcome_message
     loop do
-      game_count += 1
-      round_count = 0
-      loop do
-        round_count += 1
-        puts "ROUND #{round_count}"
-        puts "#{human.name} moves: #{human.all_moves}"
-        puts "#{computer.name} moves: #{computer.all_moves}"
-        human.choose
-        computer.choose
-        display_moves
-        display_round_winner
-        increment_score
-        display_score
-        break if score.values.include?(MAX_SCORE)
-        continue
-        #clear_screen
-    end
-    puts game_count
-    puts round_count
+      play_single_round
       display_grand_winner
       reset_score
       break unless play_again?
