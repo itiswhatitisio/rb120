@@ -9,6 +9,10 @@ class Move
   def >(other_move)
     winning_combinations.include?(other_move.value)
   end
+
+  def to_s
+    value
+  end
 end
 
 class Rock < Move
@@ -88,6 +92,10 @@ class Player
     end
   end
 
+  def reset_moves_history
+    @all_moves = []
+  end
+
   def allowed_choices(value)
     case value
     when 'rock' then Rock.new
@@ -143,7 +151,7 @@ class Computer < Player
 end
 
 class RPSGame
-  MAX_SCORE = 10
+  MAX_SCORE = 4
 
   attr_accessor :human, :computer, :score, :game_count, :round_count
 
@@ -197,8 +205,8 @@ class RPSGame
   end
 
   def display_moves
-    puts "#{human.name} chose #{human.move.value}"
-    puts "#{computer.name} chose #{computer.move.value}"
+    puts "#{human.name} chose #{human.move}"
+    puts "#{computer.name} chose #{computer.move}"
   end
 
   def display_players_moves_history
@@ -208,7 +216,7 @@ class RPSGame
   end
 
   def determine_winner
-    if (human.move.value == computer.move.value)
+    if human.move == computer.move
       :tie
     elsif human.move > computer.move
       human.name
@@ -266,6 +274,9 @@ class RPSGame
       display_grand_winner
       reset_score
       break unless play_again?
+      computer.reset_moves_history
+      human.reset_moves_history
+      clear_screen
     end
     display_goodbye_message
   end
