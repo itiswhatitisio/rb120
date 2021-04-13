@@ -93,8 +93,7 @@ class Square
 end
 
 class Player
-  attr_reader :marker
-  attr_accessor :name
+  attr_accessor :name, :marker
 
   def initialize(marker, name)
     @marker = marker
@@ -102,6 +101,51 @@ class Player
   end
 
   def mark; end
+end
+
+class Human < Player
+  def initialize
+    super(@marker, @name)
+  end
+
+  def set_marker
+    answer = nil
+    puts ""
+    puts "Choose one character to be your marker, except for X and space"
+    loop do
+      answer = gets.chomp
+      break if valid_marker?(answer)
+      puts "This is not a valid marker"
+    end
+    puts "Your marker is #{answer}"
+    self.marker = answer
+  end
+
+  def valid_marker?(marker)
+    if marker.match(/[A-Z]/) && marker != 'X' &&
+       marker != ' ' && marker.length == 1
+      return true
+    end
+    false
+  end
+
+  def set_name
+    answer = nil
+    puts "Please choose your name"
+    puts "The name must consist of any alphabetical characters (A-Z and a-z)"
+    loop do
+      answer = gets.chomp
+      break if valid_name?(answer)
+      puts "This is not a valid name"
+    end
+    puts "Your name is #{answer}"
+    self.name = answer
+  end
+
+  def valid_name?(answer)
+    answer.match?(/\A[a-zA-Z'-]*\z/) &&
+      !TTTGame::COMPUTER_NAMES.include?(answer)
+  end
 end
 
 class TTTGame
@@ -114,14 +158,13 @@ class TTTGame
 
   def initialize
     @board = Board.new
-    @human = Player.new(set_marker, set_name)
+    @human = Human.new
     @computer = Player.new(COMPUTER_MARKER, COMPUTER_NAMES.sample)
     @score = { human: 0, computer: 0 }
   end
 
   def play
-    display_welcome_message
-    first_to_move
+    initiate_game
     loop do
       play_for_grand_winner
       display_grand_winner if score.values.include?(WINNING_SCORE)
@@ -134,30 +177,15 @@ class TTTGame
 
   private
 
-  def set_marker
-    marker = nil
-    puts "Choose one character to be your marker, except for X and space"
-    loop do
-      marker = gets.chomp
-      break if marker != 'X' && marker != ' ' && marker.length == 1
-      puts "This is not a valid marker"
-    end
-    puts "Your marker is #{marker}"
-    puts ""
-    marker
+  def initiate_game
+    display_welcome_message
+    set_name_and_marker
+    first_to_move
   end
 
-  def set_name
-    name = nil
-    puts "Please choose your name"
-    puts "The name must consist of any alphabetical characters (A-Z and a-z)"
-    loop do
-      name = gets.chomp
-      break if name.match?(/\A[a-zA-Z'-]*\z/) && !COMPUTER_NAMES.include?(name)
-      puts "This is not a valid name"
-    end
-    puts "Your name is #{name}"
-    name
+  def set_name_and_marker
+    human.set_name
+    human.set_marker
   end
 
   def first_to_move
@@ -190,7 +218,7 @@ class TTTGame
     answer = nil
     loop do
       puts "Would you like to exit the game? (y/n)"
-      answer = gets.chomp.downcase
+      answer = gets.strip.chomp.downcase
       break if %w(y n).include?(answer)
       puts "Sorry, must be y or n"
     end
@@ -202,7 +230,7 @@ class TTTGame
     answer = nil
     loop do
       puts "Would you like to exit the round? (y/n)"
-      answer = gets.chomp.downcase
+      answer = gets.strip.chomp.downcase
       break if %w(y n).include?(answer)
       puts "Sorry, must be y or n"
     end
@@ -233,14 +261,19 @@ class TTTGame
   end
 
   def human_moves
-    puts "Choose a square:(#{joinor(board.unmarked_keys)}): "
+    puts "Choose a square: #{joinor(board.unmarked_keys)}: "
     square = nil
     loop do
       square = gets.chomp.to_i
-      break if board.unmarked_keys.include?(square)
+      break if valid_square?(square)
       puts "Sorry, that's not a valid choice"
     end
     board[square] = human.marker
+  end
+
+  def valid_square?(square)
+    board.unmarked_keys.include?(square) &&
+      (1..9).to_a.include?(square)
   end
 
   def computer_moves
@@ -252,8 +285,10 @@ class TTTGame
   end
 
   def display_welcome_message
+    puts ""
     puts "Welcome to Tic Tac Toe!"
     puts "The first player to win #{WINNING_SCORE} games is Grand Winner!"
+    puts "You are playing against #{computer.name} - #{COMPUTER_MARKER}"
     puts " "
   end
 
@@ -266,7 +301,7 @@ class TTTGame
   end
 
   def display_board
-    puts "#{human.name} is #{human.marker}."
+    puts "#{human.name} is #{human.marker}"
     puts "#{computer.name} is #{computer.marker}"
     puts ""
     board.draw
@@ -276,6 +311,7 @@ class TTTGame
   def display_board_and_clear_screen(clear: true)
     clear_screen if clear
     display_board
+    board.squares
   end
 
   def display_result
@@ -323,7 +359,7 @@ class TTTGame
     answer = nil
     loop do
       puts "Would you like to play for Grand Winner again? (y/n)"
-      answer = gets.chomp.downcase
+      answer = gets.strip.chomp.downcase
       break if %w(y n).include?(answer)
       puts "Sorry, must be y or n"
     end
