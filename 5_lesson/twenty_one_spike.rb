@@ -35,7 +35,7 @@ class Participant
   attr_accessor :cards
 
   def initialize
-    @cards = [{:suit=>"♣", :rank=>"A"}]
+    @cards = []
     @score = 0
   end
 
@@ -63,23 +63,24 @@ class Participant
       sum
   end
 
-  def bust?
-  end
-end
-
-class Player < Participant
-  def hit
-  end
-
   def stay
+
+  end
+
+  def bust?
+    return true if calculate_score > 21
+    false
   end
 end
+
+class Player < Participant; end
 
 class Dealer < Participant
-  def hit
-  end
-
-  def stay
+  def dealer_hits
+    loop do
+      dealer.hit
+      break if dealer.calculate_score >= 17
+    end
   end
 end
 
@@ -89,6 +90,7 @@ attr_accessor :deck, :player, :dealer
     @deck = Deck.new
     @player = Participant.new
     @dealer = Participant.new
+    @current_player = @player
   end
 
   def deal_initial_cards
@@ -98,8 +100,63 @@ attr_accessor :deck, :player, :dealer
     dealer.cards << deck.deal_card
   end
 
+  def hide_dealer_cards
+    dealer_card = dealer.cards[0]
+    "#{dealer_card[:suit]}#{dealer_card[:rank]} and an uknown card" 
+  end
+
+  def display_player_cards
+    cards = []
+    player.cards.each do |card|
+      player_card = ""
+      player_card << card[:suit]
+      player_card << card[:rank].to_s
+      cards << player_card
+      player_card = ""
+    end
+    cards.join(', ')
+  end
+
+  def show_cards
+    puts "Dealer has: #{hide_dealer_cards}"
+    puts "You have: #{display_player_cards}"
+  end
+
+  def hit_or_stay
+    answer = nil
+    loop do
+      puts "(H)it or (s)tay?"
+      answer = gets.chomp
+      break if answer == 'h' || answer == 's'
+    end
+    answer
+  end
+
+  def participant_hits(participant)
+    participant.cards << deck.deal_card
+  end
+
+  def player_turn
+    puts "It's your turn!"
+    answer = nil
+    loop do
+      answer = hit_or_stay
+      participant_hits(player) if answer == 'h'
+      show_cards
+      break if answer == 's' || player.bust?
+    end
+  end
+
+  def dealer_turn
+    puts "It's dealer's turn"
+  end
+
+  def determine_winner
+
+  end
+
   def play
-    #deal_initial_cards
+    deal_initial_cards
     show_cards
     player_turn
     dealer_turn
@@ -109,6 +166,7 @@ end
 
 g = Game.new
 g.deal_initial_cards
-p g.player
-p g.player.calculate_score
+g.show_cards
+g.player_turn
+#g.dealer_turn
 
