@@ -75,14 +75,7 @@ end
 
 class Player < Participant; end
 
-class Dealer < Participant
-  def dealer_hits
-    loop do
-      dealer.hit
-      break if dealer.calculate_score >= 17
-    end
-  end
-end
+class Dealer < Participant; end
 
 class Game
 attr_accessor :deck, :player, :dealer
@@ -120,6 +113,7 @@ attr_accessor :deck, :player, :dealer
   def show_cards
     puts "Dealer has: #{hide_dealer_cards}"
     puts "You have: #{display_player_cards}"
+    puts "Your score is: #{player.calculate_score}"
   end
 
   def hit_or_stay
@@ -147,8 +141,16 @@ attr_accessor :deck, :player, :dealer
     end
   end
 
+  def dealer_hits
+    loop do
+      participant_hits(dealer)
+      break if dealer.calculate_score >= 17
+    end
+  end
+
   def dealer_turn
     puts "It's dealer's turn"
+    dealer_hits
   end
 
   def determine_winner
@@ -168,5 +170,5 @@ g = Game.new
 g.deal_initial_cards
 g.show_cards
 g.player_turn
-#g.dealer_turn
+g.dealer_turn
 
