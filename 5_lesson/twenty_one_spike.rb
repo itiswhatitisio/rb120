@@ -32,7 +32,7 @@ class Deck
 end
 
 class Participant
-  attr_accessor :cards
+  attr_accessor :cards, :score
 
   def initialize
     @cards = []
@@ -46,21 +46,19 @@ class Participant
       ranks << card[:rank] if card[:rank] != 'A'
       aces << card[:rank] if card[:rank] == 'A'
       end
-      sum = ranks.reduce(0) do |sum, rank|
+      @score = ranks.reduce(0) do |sum, rank|
         sum + Deck::CARD_VALUES[rank]
       end
-      sum
       aces.each do |ace|
-        if sum > 21
-          sum += 1
-        elsif sum < 21
-          sum += 11
-          if sum > 21
-            sum -=10
+        if @score > 21
+          @score += 1
+        elsif @score < 21
+          @score += 11
+          if @score > 21
+            @score -=10
           end
         end
       end
-      sum
   end
 
   def stay
@@ -68,7 +66,7 @@ class Participant
   end
 
   def bust?
-    return true if calculate_score > 21
+    return true if self.score > 21
     false
   end
 end
@@ -113,7 +111,10 @@ attr_accessor :deck, :player, :dealer
   def show_cards
     puts "Dealer has: #{hide_dealer_cards}"
     puts "You have: #{display_player_cards}"
-    puts "Your score is: #{player.calculate_score}"
+    player.calculate_score
+    puts "Your score is: #{player.score}"
+    dealer.calculate_score
+    puts "Dealer score is: #{dealer.score}"
   end
 
   def hit_or_stay
@@ -141,34 +142,52 @@ attr_accessor :deck, :player, :dealer
     end
   end
 
-  def dealer_hits
-    loop do
-      participant_hits(dealer)
-      break if dealer.calculate_score >= 17
-    end
-  end
-
   def dealer_turn
     puts "It's dealer's turn"
-    dealer_hits
+    loop do
+      break if dealer.score >= 17
+      participant_hits(dealer)
+      dealer.calculate_score
+      break if dealer.score >= 17
+    end
+    puts "Dealer loses!" if dealer.bust?
   end
 
   def determine_winner
+    if dealer.score > player.score
+      puts "Dealer wins"
+    elsif player.score > dealer.score
+      puts "You win"
+    else
+      puts "It's a tie"
+    end
+  end
 
+  def quit_game?
+    answer = nil
+    loop do
+      puts "Would you like to play another round?"
+      answer = gets.chomp
+      break if answer == 'n' || answer == 'y'
+    end
+    answer == 'n'
   end
 
   def play
-    deal_initial_cards
-    show_cards
-    player_turn
-    dealer_turn
-    determine_winner
+    loop do
+      deal_initial_cards
+      show_cards
+      player_turn
+      break if player.bust?
+      dealer_turn
+      break if dealer.bust?
+      puts "Dealer score is #{dealer.score}"
+      determine_winner
+      break if quit_game?
+    end
+    puts "Thank you for playing!"
   end
 end
 
 g = Game.new
-g.deal_initial_cards
-g.show_cards
-g.player_turn
-g.dealer_turn
-
+g.play
