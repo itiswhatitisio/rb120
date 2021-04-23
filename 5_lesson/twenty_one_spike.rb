@@ -32,11 +32,13 @@ class Deck
 end
 
 class Participant
-  attr_accessor :cards, :score
+  attr_reader :name
+  attr_accessor :cards, :score, :deck
 
-  def initialize
+  def initialize(name)
     @cards = []
     @score = 0
+    @name = name
   end
 
   def calculate_score
@@ -71,9 +73,35 @@ class Participant
     self.cards = []
   end
 
-  def bust?
+  def busteded?
     return true if score > 21
     false
+  end
+end
+
+class Player < Participant
+  attr_accessor :name, :cards
+
+  def initialize
+    @name = set_name
+    super(name)
+  end
+
+  def set_name
+    answer = nil
+    puts "Please choose your name"
+    puts "The name must consist of any alphabetical characters (A-Z and a-z)"
+    loop do
+      answer = gets.chomp
+      break if valid_name?(answer)
+      puts "This is not a valid name"
+    end
+    puts "Your name is #{answer}"
+    self.name = answer
+  end
+
+  def valid_name?(answer)
+    answer.match?(/\A[a-zA-Z'-]*\z/)
   end
 end
 
@@ -82,14 +110,39 @@ class Game
 
   def initialize
     @deck = Deck.new
-    @player = Participant.new
-    @dealer = Participant.new
+    @player = Player.new
+    @dealer = Participant.new("Dealer")
     @current_player = @player
   end
 
+  def play_one_round(end_of_round: true)
+    loop do
+      deal_initial_cards
+      player_turn
+      break if player.busted?
+      dealer_turn
+      break if dealer.busted?
+      determine_winner 
+      break if end_of_round
+    end
+  end
+
+  def play
+    display_welcome_message
+    loop do
+      play_one_round
+      reset_cards_and_score
+      break if quit_game?
+    end
+    display_goodby_message
+  end
+
+  private
+
   def display_welcome_message
-    puts "Welcome to Twenty One Game!"
-    puts "You well be playing against {dealer.name}"
+    puts ""
+    puts "Welcome to Twenty One Game, #{player.name}!"
+    puts "You well be playing against #{dealer.name}"
     puts ""
     puts "The goal of the game is to get to 21 as close as possible"
     puts "If the sum of your cards is more than 21, you loose"
@@ -165,7 +218,7 @@ class Game
       answer = hit_or_stay
       participant_hits(player) if answer == 'h'
       clear_screen_and_display_cards
-      break if answer == 's' || player.bust?
+      break if answer == 's' || player.busted?
     end
   end
 
@@ -178,7 +231,7 @@ class Game
       break if dealer.score >= 17
     end
     puts "Dealer score is #{dealer.score}"
-    puts "Dealer loses!" if dealer.bust?
+    puts "Dealer loses!" if dealer.busted?
   end
 
   def determine_winner
@@ -208,26 +261,7 @@ class Game
     dealer.reset_cards
   end
 
-  def play_one_round
-    loop do
-      deal_initial_cards
-      player_turn
-      break if player.bust?
-      dealer_turn
-      break if dealer.bust?
-      determine_winner
-      break if quit_game?
-      reset_cards_and_score
-    end
-  end
-
-  def play
-    display_welcome_message
-    loop do
-      play_one_round
-      reset_cards_and_score
-      break if quit_game?
-    end
+  def display_goodby_message
     puts "Thank you for playing!"
   end
 end
