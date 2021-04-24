@@ -32,8 +32,8 @@ class Deck
 end
 
 class Participant
-  attr_reader :name
-  attr_accessor :cards, :score, :deck
+  attr_reader :name, :deck
+  attr_accessor :score, :cards
 
   def initialize(name)
     @cards = []
@@ -73,18 +73,17 @@ class Participant
     self.cards = []
   end
 
-  def busteded?
+  def busted?
     return true if score > 21
     false
   end
 end
 
 class Player < Participant
-  attr_accessor :name, :cards
+  attr_accessor :name
 
   def initialize
-    @name = set_name
-    super(name)
+    super(set_name)
   end
 
   def set_name
@@ -122,7 +121,7 @@ class Game
       break if player.busted?
       dealer_turn
       break if dealer.busted?
-      determine_winner 
+      determine_winner
       break if end_of_round
     end
   end
@@ -195,8 +194,9 @@ class Game
     answer = nil
     loop do
       puts "(H)it or (s)tay?"
-      answer = gets.chomp
+      answer = gets.chomp.downcase
       break if answer == 'h' || answer == 's'
+      puts "This is not a valid choice. Select (h)it or (s)tay"
     end
     answer
   end
@@ -218,6 +218,7 @@ class Game
       answer = hit_or_stay
       participant_hits(player) if answer == 'h'
       clear_screen_and_display_cards
+      puts "#{player.name} loses" if player.busted?
       break if answer == 's' || player.busted?
     end
   end
@@ -247,9 +248,11 @@ class Game
   def quit_game?
     answer = nil
     loop do
-      puts "Would you like to play another round?"
-      answer = gets.chomp
+      puts "Would you like to play another round? (y)es or (n)o?"
+      answer = gets.chomp.downcase
       break if answer == 'n' || answer == 'y'
+      puts "This is not a valid choice."
+      puts "Please select (y)es or (n)o"
     end
     answer == 'n'
   end
